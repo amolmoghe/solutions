@@ -152,13 +152,37 @@ class MarketAnalyzer:
             else:
                 bearish_score += 1
                 
-        # Determine market direction
-        if bullish_score >= bearish_score + 2:
+        # Enhanced market direction logic with better sideways detection
+        score_diff = abs(bullish_score - bearish_score)
+        
+        # Check for specific sideways/choppy conditions
+        sideways_indicators = 0
+        
+        # Low volatility but not too low (choppy range)
+        if 15 <= current_vix <= 30:
+            sideways_indicators += 1
+            
+        # RSI in neutral zone
+        if 35 <= current_rsi <= 65:
+            sideways_indicators += 1
+            
+        # Price near moving averages (consolidation)
+        if abs(current_price - sma_20) / sma_20 < 0.02:  # Within 2% of 20 SMA
+            sideways_indicators += 1
+            
+        # Bollinger Band position (not at extremes)
+        if 0.25 <= current_bb_position <= 0.75:
+            sideways_indicators += 1
+        
+        # Determine market direction with enhanced sideways detection
+        if sideways_indicators >= 3 or score_diff <= 1:
+            return "SIDEWAYS"
+        elif bullish_score >= bearish_score + 2:
             return "BULLISH"
         elif bearish_score >= bullish_score + 2:
             return "BEARISH"
         else:
-            return "SIDEWAYS"
+            return "SIDEWAYS"  # Default to sideways for unclear conditions
     
     def get_market_analysis(self):
         """Get comprehensive market analysis"""

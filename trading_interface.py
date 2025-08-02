@@ -153,6 +153,79 @@ class TradingInterface:
             self.logger.error(f"Error creating call diagonal order: {e}")
             return None, None
     
+    def create_iron_condor_order(self, trade_data, quantity=1):
+        """Create iron condor order (4-leg spread)"""
+        try:
+            # Create all four option contracts
+            short_put = self.create_spx_option_contract(
+                trade_data['short_put_strike'], 
+                trade_data['expiry'], 
+                'PUT'
+            )
+            long_put = self.create_spx_option_contract(
+                trade_data['long_put_strike'], 
+                trade_data['expiry'], 
+                'PUT'
+            )
+            short_call = self.create_spx_option_contract(
+                trade_data['short_call_strike'], 
+                trade_data['expiry'], 
+                'CALL'
+            )
+            long_call = self.create_spx_option_contract(
+                trade_data['long_call_strike'], 
+                trade_data['expiry'], 
+                'CALL'
+            )
+            
+            # Create combo contract for iron condor
+            combo = Contract()
+            combo.symbol = 'SPX'
+            combo.secType = 'BAG'
+            combo.currency = 'USD'
+            combo.exchange = 'SMART'
+            
+            # Define all four legs
+            leg1 = ComboLeg()  # Short Put
+            leg1.conId = short_put.conId if hasattr(short_put, 'conId') else 0
+            leg1.ratio = 1
+            leg1.action = 'SELL'
+            leg1.exchange = 'SMART'
+            
+            leg2 = ComboLeg()  # Long Put
+            leg2.conId = long_put.conId if hasattr(long_put, 'conId') else 0
+            leg2.ratio = 1
+            leg2.action = 'BUY'
+            leg2.exchange = 'SMART'
+            
+            leg3 = ComboLeg()  # Short Call
+            leg3.conId = short_call.conId if hasattr(short_call, 'conId') else 0
+            leg3.ratio = 1
+            leg3.action = 'SELL'
+            leg3.exchange = 'SMART'
+            
+            leg4 = ComboLeg()  # Long Call
+            leg4.conId = long_call.conId if hasattr(long_call, 'conId') else 0
+            leg4.ratio = 1
+            leg4.action = 'BUY'
+            leg4.exchange = 'SMART'
+            
+            combo.comboLegs = [leg1, leg2, leg3, leg4]
+            
+            # Create order
+            order = Order()
+            order.action = 'BUY'  # Buying the iron condor (net credit)
+            order.totalQuantity = quantity
+            order.orderType = 'LMT'
+            order.lmtPrice = trade_data['net_credit'] * 0.95  # 5% below theoretical
+            order.tif = 'DAY'
+            
+            return combo, order
+            
+        except Exception as e:
+            self.logger.error(f"Error creating iron condor order: {e}")
+            return None, None
+    
     async def place_order(self, contract, order):
         """Place order with Interactive Brokers"""
         if not self.connected:
@@ -277,6 +350,8 @@ class TradingInterface:
                 contract, order = self.create_put_credit_spread_order(trade_data, quantity)
             elif trade_data['strategy'] == 'call_diagonal':
                 contract, order = self.create_call_diagonal_order(trade_data, quantity)
+            elif trade_data['strategy'] == 'iron_condor':
+                contract, order = self.create_iron_condor_order(trade_data, quantity)
             else:
                 self.logger.error(f"Unknown strategy: {trade_data['strategy']}")
                 return False

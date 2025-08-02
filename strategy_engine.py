@@ -213,8 +213,8 @@ class StrategyEngine:
         best_condor = None
         best_score = 0
         
-        # Test different delta configurations for maximum success
-        delta_configs = [0.08, 0.10, 0.12, 0.15]  # Different delta targets
+        # Test different delta configurations for maximum success (0DTE optimized)
+        delta_configs = [0.05, 0.08, 0.10, 0.12, 0.15]  # More conservative deltas for 0DTE
         
         for target_delta in delta_configs:
             condor = self._build_iron_condor(
@@ -243,28 +243,42 @@ class StrategyEngine:
         rsi = market_analysis['rsi']
         bb_position = market_analysis.get('bb_position', 0.5)
         volume_ratio = market_analysis.get('volume_ratio', 1.0)
+        direction = market_analysis['direction']
         
-        # Optimal conditions for Iron Condor:
-        # 1. Moderate volatility (VIX 15-30)
-        if vix_level < 15 or vix_level > 35:
+        self.logger.info(f"Checking Iron Condor suitability:")
+        self.logger.info(f"  Market Direction: {direction}")
+        self.logger.info(f"  VIX Level: {vix_level:.1f}")
+        self.logger.info(f"  RSI: {rsi:.1f}")
+        self.logger.info(f"  BB Position: {bb_position:.2f}")
+        self.logger.info(f"  Volume Ratio: {volume_ratio:.2f}")
+        
+        # Primary requirement: Market direction should be SIDEWAYS
+        if direction != 'SIDEWAYS':
+            self.logger.info(f"  ❌ Market not sideways (is {direction})")
+            return False
+        
+        # Relaxed conditions for 0DTE Iron Condors:
+        # 1. Moderate to elevated volatility (VIX 12-40) - wider range for 0DTE
+        if vix_level < 12 or vix_level > 40:
+            self.logger.info(f"  ❌ VIX outside optimal range (12-40): {vix_level:.1f}")
             return False
             
-        # 2. RSI in neutral range (35-65)
-        if rsi < 35 or rsi > 65:
+        # 2. RSI in neutral to slightly extended range (25-75) - more permissive
+        if rsi < 25 or rsi > 75:
+            self.logger.info(f"  ❌ RSI outside range (25-75): {rsi:.1f}")
             return False
             
-        # 3. Price in middle of Bollinger Bands (0.3-0.7)
-        if bb_position < 0.3 or bb_position > 0.7:
+        # 3. Price not at extreme Bollinger Band positions (0.15-0.85)
+        if bb_position < 0.15 or bb_position > 0.85:
+            self.logger.info(f"  ❌ BB position too extreme: {bb_position:.2f}")
             return False
             
-        # 4. Normal volume (not excessive)
-        if volume_ratio > 1.5:
+        # 4. Volume not excessively high (suggests breakout potential)
+        if volume_ratio > 2.0:  # More permissive for 0DTE
+            self.logger.info(f"  ❌ Volume too high (breakout risk): {volume_ratio:.2f}")
             return False
-            
-        # 5. Market direction should be SIDEWAYS
-        if market_analysis['direction'] != 'SIDEWAYS':
-            return False
-            
+        
+        self.logger.info("  ✅ All Iron Condor suitability checks passed")
         return True
     
     def _build_iron_condor(self, spot_price, target_delta, time_to_expiry, volatility, market_analysis):
@@ -520,21 +534,28 @@ class StrategyEngine:
                 recommendations.append(put_spread)
                 
         elif direction == 'SIDEWAYS':
-            # Primary strategy: Iron Condor for range-bound markets
-            iron_condor = self.find_iron_condor(market_analysis)
-            if iron_condor:
-                recommendations.append(iron_condor)
+            # PRIMARY STRATEGY: Iron Condor for sideways/range-bound/choppy markets
+            self.logger.info("Market detected as SIDEWAYS - Scanning for optimal Iron Condor...")
             
-            # Alternative: Call diagonals if iron condor doesn't qualify
+            iron_condor = self.find_optimal_iron_condor(market_analysis)
+            if iron_condor:
+                self.logger.info(f"Iron Condor found with {iron_condor['prob_profit']:.1%} probability of profit")
+                recommendations.append(iron_condor)
+            else:
+                self.logger.info("No suitable Iron Condor found - market conditions not optimal")
+            
+            # SECONDARY: Call diagonals only if Iron Condor is not suitable
             if not iron_condor:
+                self.logger.info("Checking Call Diagonal as alternative to Iron Condor...")
                 call_diagonal = self.find_call_diagonal(market_analysis)
                 if call_diagonal:
                     recommendations.append(call_diagonal)
                 
-            # Backup: Put credit spreads with lower probability
+            # TERTIARY: Put credit spreads only as last resort
             if not recommendations:
+                self.logger.info("Checking Put Credit Spread as backup strategy...")
                 put_spread = self.find_put_credit_spread(market_analysis)
-                if put_spread and put_spread['prob_profit'] >= 0.65:
+                if put_spread and put_spread['prob_profit'] >= 0.60:  # Lower threshold for backup
                     put_spread['recommendation'] = 'MONITOR'
                     recommendations.append(put_spread)
         

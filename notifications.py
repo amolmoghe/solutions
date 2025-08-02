@@ -190,6 +190,39 @@ class NotificationManager:
 
 ⚡ <b>Recommendation: {trade_data['recommendation']}</b>
             """
+            
+        elif trade_data['strategy'] == 'iron_condor':
+            message = f"""
+🤖 <b>SPX 0DTE Trading Bot - Trade {action}</b>
+📅 {timestamp}
+
+🦅 <b>IRON CONDOR (0DTE)</b>
+• Strategy: <b>Range-Bound/Sideways</b>
+• SPX Price: <b>${trade_data['spot_price']:.2f}</b>
+• VIX Level: <b>{trade_data['vix_level']:.1f}</b>
+
+🎯 <b>Trade Structure:</b>
+• Short Put: <b>${trade_data['short_put_strike']:.0f}</b> (Δ: {trade_data['short_put_delta']:.3f})
+• Long Put: <b>${trade_data['long_put_strike']:.0f}</b>
+• Short Call: <b>${trade_data['short_call_strike']:.0f}</b> (Δ: {trade_data['short_call_delta']:.3f})
+• Long Call: <b>${trade_data['long_call_strike']:.0f}</b>
+• Wing Width: <b>${trade_data['wing_width']:.0f} points</b>
+
+💰 <b>Financials:</b>
+• Net Credit: <b>${trade_data['net_credit']:.2f}</b>
+• Max Profit: <b>${trade_data['max_profit']:.2f}</b>
+• Max Loss: <b>${trade_data['max_loss']:.2f}</b>
+• Profit Zone: <b>${trade_data['lower_breakeven']:.2f} - ${trade_data['upper_breakeven']:.2f}</b>
+• Zone Width: <b>{trade_data.get('profit_zone_percentage', 0):.1f}% of SPX</b>
+• Prob of Profit: <b>{trade_data['prob_profit']:.1%}</b>
+
+📊 <b>Greeks:</b>
+• Net Delta: <b>{trade_data['net_delta']:.3f}</b> (Delta Neutral)
+• Net Theta: <b>{trade_data['net_theta']:.3f}</b>
+
+🎯 <b>Optimization Score: {trade_data.get('optimization_score', 0):.0f}/100</b>
+⚡ <b>Recommendation: {trade_data['recommendation']}</b>
+            """
         
         # Send via all enabled channels
         self._send_to_all_channels(subject, message)
