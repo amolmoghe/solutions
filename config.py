@@ -13,10 +13,14 @@ class Config:
     
     # Trading Parameters
     SPREAD_WIDTH = 10  # $10 width for credit spreads
+    IRON_CONDOR_WIDTH = 30  # $30 width for iron condors
     MIN_CREDIT = 2.0   # Minimum credit to collect
+    MIN_IC_CREDIT = 5.0   # Minimum credit for iron condors
     MAX_RISK_PER_TRADE = 1000  # Maximum risk per trade
     TARGET_DELTA = 0.15  # Target delta for short strikes
+    TARGET_IC_DELTA = 0.10  # Target delta for iron condor short strikes
     MIN_PROBABILITY = 0.70  # Minimum probability of profit
+    MIN_IC_PROBABILITY = 0.65  # Minimum probability for iron condors
     
     # Market Analysis Parameters
     ANALYSIS_TIME = "07:00"  # 7 AM PST analysis time
