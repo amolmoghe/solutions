@@ -36,3 +36,15 @@ class Config:
     BEARISH_RSI_MIN = 30
     BEARISH_RSI_MAX = 60
     SIDEWAYS_THRESHOLD = 0.5  # VIX threshold for sideways market
+    
+    # Notification Settings
+    EMAIL_USER = os.getenv('EMAIL_USER')
+    EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
+    NOTIFICATION_EMAIL = os.getenv('NOTIFICATION_EMAIL')
+    SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+    SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
+    
+    TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+    TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+    
+    SLACK_WEBHOOK_URL = os.getenv('SLACK_WEBHOOK_URL')
