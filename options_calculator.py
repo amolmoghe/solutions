@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 from py_vollib.black_scholes import black_scholes
-from py_vollib.black_scholes.greeks import delta, gamma, theta, vega, rho
+from py_vollib.black_scholes.greeks.analytical import delta, gamma, theta, vega, rho
 from datetime import datetime, timedelta
 import yfinance as yf
 from config import Config
